@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Quebra-Cabeça HQ | Desafio Pop Art</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Comic+Neue:ital,wght@0,700;1,700&display=swap" rel="stylesheet">
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="min-h-screen flex flex-col">
+
+
+    <div id="drag-ghost"></div>
+    <header class="w-full bg-[#FF2A5F] border-b-4 border-black py-3 px-4 shadow-[0_4px_0_#000] sticky top-0 z-40">
+        <div class="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-3 cursor-pointer" onclick="voltarParaSelecao()">
+                <div class="bg-[#FFD60A] border-3 border-black px-2.5 py-1 rounded-lg shadow-[3px_3px_0_#000] -rotate-3">
+                    
+                </div>
+                <h1 class="font-bangers text-3xl sm:text-4xl text-white comic-text-stroke tracking-wider">
+                    QUEBRA-CABEÇA HQ!
+                </h1>
+            </div>
+
+            <div class="flex items-center gap-2 sm:gap-3">
+                <button id="btn-som" onclick="alternarSom()" class="comic-btn bg-[#00BBF9] text-black px-3 py-1.5 text-base sm:text-lg flex items-center gap-1.5" title="Ativar/Desativar Efeitos Sonoros">
+                    <span id="icone-som">🔊</span> <span class="hidden sm:inline">SOM: ON</span>
+                </button>
+                <button id="btn-voltar-topo" onclick="voltarParaSelecao()" class="hidden comic-btn bg-[#FFD60A] text-black px-3 py-1.5 text-base sm:text-lg">
+                    ⬅ ESCOLHER HQ
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-6xl w-full mx-auto p-4 sm:p-6">
+
+        <section id="tela-selecao" class="space-y-6">
+            <!-- Banner de Instrução com Balão de Fala -->
+            <div class="flex flex-col md:flex-row items-center justify-between gap-4 bg-[#00BBF9] comic-panel p-4 sm:p-6">
+                <div class="speech-bubble p-4 max-w-xl">
+                    <p class="font-bangers text-2xl sm:text-3xl text-[#FF2A5F] tracking-wide">
+                        EI, HERÓI! ESCOLHA SUA EDIÇÃO!
+                    </p>
+                    <p class="font-bold text-base sm:text-lg text-gray-900 mt-1">
+                        Selecione uma capa abaixo ou carregue sua própria foto na edição especial para montar!
+                    </p>
+                </div>
+
+                <div class="comic-panel-sm bg-[#FFF9E6] p-3 sm:p-4 w-full md:w-auto flex flex-col items-center">
+                    <span class="font-bangers text-xl text-black mb-2 tracking-wide">NÍVEL DE DESAFIO:</span>
+                    <div class="grid grid-cols-3 gap-2 w-full">
+                        <button onclick="selecionarDificuldade(3)" id="diff-3" class="diff-btn comic-btn bg-[#FFD60A] text-black px-3 py-2 text-base sm:text-lg">
+                            FÁCIL<br><span class="font-sans text-xs font-extrabold">3x3 (9)</span>
+                        </button>
+                        <button onclick="selecionarDificuldade(4)" id="diff-4" class="diff-btn comic-btn bg-white text-black px-3 py-2 text-base sm:text-lg">
+                            MÉDIO<br><span class="font-sans text-xs font-extrabold">4x4 (16)</span>
+                        </button>
+                        <button onclick="selecionarDificuldade(5)" id="diff-5" class="diff-btn comic-btn bg-white text-black px-3 py-2 text-base sm:text-lg">
+                            DIFÍCIL<br><span class="font-sans text-xs font-extrabold">5x5 (25)</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Input oculto para upload rápido de imagem direto pela tela -->
+            <input type="file" id="input-upload-foto" accept="image/*" class="hidden" onchange="processarUploadFoto(event)">
+
+            <!-- Grade de Edições de HQ -->
+            <div id="grid-hqs" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <!-- Os cards serão renderizados dinamicamente -->
+            </div>
+        </section>
+
+    
+        <section id="tela-jogo" class="hidden space-y-4">
+            <!-- Barra de Status e Controles do Jogo -->
+            <div class="comic-panel bg-white p-3 sm:p-4 flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center gap-3">
+                    <span id="badge-edicao" class="bg-[#F15BB5] text-white font-bangers text-lg px-3 py-1 border-2 border-black rounded-lg shadow-[2px_2px_0_#000]">
+                    </span>
+                    <h2 id="titulo-hq-atual" class="font-bangers text-2xl sm:text-3xl text-black tracking-wide">
+                        TÍTULO DA HQ
+                    </h2>
+                </div>
+
+            
+                <div class="flex items-center gap-3 sm:gap-4">
+                    <div class="bg-[#FFD60A] border-3 border-black rounded-lg px-3 py-1 shadow-[3px_3px_0_#000] text-center">
+                        <span class="block text-xs font-extrabold uppercase">TEMPO</span>
+                        <span id="cronometro" class="font-bangers text-xl sm:text-2xl">00:00</span>
+                    </div>
+                    <div class="bg-[#00BBF9] border-3 border-black rounded-lg px-3 py-1 shadow-[3px_3px_0_#000] text-center">
+                        <span class="block text-xs font-extrabold uppercase">JOGADAS</span>
+                        <span id="contador-movimentos" class="font-bangers text-xl sm:text-2xl">0</span>
+                    </div>
+                    <div class="bg-[#9B5DE5] text-white border-3 border-black rounded-lg px-3 py-1 shadow-[3px_3px_0_#000] text-center">
+                        <span class="block text-xs font-extrabold uppercase">ENCAIXES</span>
+                        <span id="contador-progresso" class="font-bangers text-xl sm:text-2xl">0/9</span>
+                    </div>
+                </div>
+
+            
+                <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+                    <button id="btn-dica" onclick="alternarDica()" class="comic-btn bg-[#FFF9E6] text-black px-3 py-2 text-base flex-1 sm:flex-none">
+                        👁️ DICA / GUIA
+                    </button>
+                    <button onclick="reiniciarQuebraCabeca()" class="comic-btn bg-[#FF2A5F] text-white px-3 py-2 text-base flex-1 sm:flex-none">
+                        🔄 EMBARALHAR
+                    </button>
+                </div>
+            </div>
+
+            
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+                
+                <!-- Quadro Principal de Montagem (Esquerda / Topo) -->
+                <div class="lg:col-span-7 flex flex-col items-center">
+                    <div class="comic-panel bg-[#111] p-2 sm:p-3 w-full max-w-[520px] relative">
+                        <!-- Etiqueta de Quadro HQ -->
+                        <div class="absolute -top-4 left-4 bg-[#FFD60A] border-2 border-black px-2.5 py-0.5 font-bangers text-sm shadow-[2px_2px_0_#000] z-20">
+                            QUADRO DE MONTAGEM
+                        </div>
+
+                        <!-- Container Quadrado Responsivo do Tabuleiro -->
+                        <div id="tabuleiro-container" class="relative w-full aspect-square bg-[#222] border-2 border-black overflow-hidden">
+                            <!-- Imagem Fantasma (Dica) -->
+                            <img id="imagem-guia" alt="Guia HQ" class="absolute inset-0 w-full h-full object-cover opacity-0 pointer-events-none transition-opacity duration-200 z-0" />
+                            
+                            <!-- Grade de Slots -->
+                            <div id="grade-tabuleiro" class="relative z-10 w-full h-full grid"></div>
+                        </div>
+                    </div>
+                    <p class="mt-3 text-center font-bold text-sm sm:text-base bg-white/90 border-2 border-black px-3 py-1 rounded-lg shadow-[3px_3px_0_#000]">
+                        💡 Dica: Arraste as peças para o quadro ou toque em uma peça e depois no espaço desejado!
+                    </p>
+                </div>
+
+                <!-- Bandeja de Peças Embaralhadas (Direita / Baixo) -->
+                <div class="lg:col-span-5">
+                    <div class="comic-panel bg-[#FFF9E6] p-3 sm:p-4 relative">
+                        <div class="flex items-center justify-between mb-3 pb-2 border-b-3 border-black">
+                            <span class="font-bangers text-2xl text-black tracking-wide">
+                                🧩 PEÇAS SOLTAS
+                            </span>
+                            <span id="info-dificuldade-badge" class="bg-[#00BBF9] border-2 border-black px-2 py-0.5 rounded font-bold text-xs">
+                                MODO FÁCIL (3x3)
+                            </span>
+                        </div>
+
+                        <div id="bandeja-pecas" class="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-3 gap-2.5 min-h-[260px] max-h-[500px] overflow-y-auto p-1 place-items-center">
+                        
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <div id="modal-vitoria" class="fixed inset-0 bg-black/75 z-50 hidden items-center justify-center p-4 backdrop-blur-xs">
+        <div class="comic-panel bg-[#FFD60A] max-w-md w-full p-6 text-center relative overflow-hidden">
+            <div class="bg-white border-4 border-black rounded-xl p-5 shadow-[5px_5px_0_#000]">
+                <div class="inline-block bg-[#FF2A5F] text-white font-bangers text-4xl sm:text-5xl px-5 py-1.5 border-3 border-black rounded-xl shadow-[4px_4px_0_#000] -rotate-3 mb-3">
+                    VITÓRIA! POW!
+                </div>
+                
+                <p class="font-bold text-lg text-gray-900 mb-3">
+                    Você completou a edição <span id="vitoria-titulo" class="text-[#FF2A5F] underline"></span> com maestria!
+                </p>
+
+                
+                <div class="w-40 h-40 mx-auto my-3 border-4 border-black shadow-[4px_4px_0_#000] rounded-lg overflow-hidden">
+                    <img id="vitoria-imagem" alt="HQ Completa" class="w-full h-full object-cover">
+                </div>
+
+                
+                <div class="grid grid-cols-2 gap-3 my-4">
+                    <div class="bg-[#00BBF9] border-3 border-black rounded-lg p-2 shadow-[3px_3px_0_#000]">
+                        <span class="block text-xs font-extrabold">TEMPO TOTAL</span>
+                        <span id="vitoria-tempo" class="font-bangers text-2xl">00:00</span>
+                    </div>
+                    <div class="bg-[#F15BB5] text-white border-3 border-black rounded-lg p-2 shadow-[3px_3px_0_#000]">
+                        <span class="block text-xs font-extrabold">TOTAL DE JOGADAS</span>
+                        <span id="vitoria-movimentos" class="font-bangers text-2xl">0</span>
+                    </div>
+                </div>
+
+                
+                <div class="flex flex-col sm:flex-row gap-3 mt-4">
+                    <button onclick="jogarNovamente()" class="comic-btn bg-[#00BBF9] text-black py-2.5 px-4 text-lg flex-1">
+                        🔄 JOGAR DE NOVO
+                    </button>
+                    <button onclick="voltarParaSelecao()" class="comic-btn bg-[#FF2A5F] text-white py-2.5 px-4 text-lg flex-1">
+                        📚 OUTRA HQ
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- RODAPÉ -->
+    <footer class="mt-auto py-3 px-4 text-center font-bold text-sm border-t-3 border-black bg-white">
+        🎨 Edição Personalizável • <span class="text-[#FF2A5F]">Quebra-Cabeça HQ</span>
+    </footer>
+
+
+    <script>
+    
+        const CATALOGO_HQS = [
+            {
+                id: 'hq-1',
+                edicao: 'EDIÇÃO #01',
+                titulo: 'Astral Guardiã da Gravidade',
+                corDestaque: '#00BBF9',
+                imagemCapa: 'imagens/Astral_ Guardiã da Gravidade.png',          
+                imagemQuebraCabeca: 'imagens/Astral_ Guardiã da Gravidade.png'  
+            },
+            {
+                id: 'hq-2',
+                edicao: 'EDIÇÃO #02',
+                titulo: 'Colosso Guardião da força',
+                corDestaque: '#F15BB5',
+                imagemCapa: 'imagens/Colosso Salva o Ônibus Escolar.png',          
+                imagemQuebraCabeca: 'imagens/Colosso Salva o Ônibus Escolar.png'   
+            },
+            {
+                id: 'hq-3',
+                edicao: 'EDIÇÃO #03',
+                subtitulo: 'Solaris Guardian do fogo',
+                corDestaque: '#FFD60A',
+                imagemCapa: 'imagens/Solaris contra o meteoro gigante (1).png',          
+                imagemQuebraCabeca: 'imagens/Solaris contra o meteoro gigante (1).png'   
+            },
+            {
+                id: 'hq-4',
+                edicao: 'EDIÇÃO #04',
+                subtitulo: 'Volt Guardião dos Raios e Energia ',
+                corDestaque: '#FFD60A',
+                imagemCapa: 'imagens/Volt detém o trem desgovernado.png',          
+                imagemQuebraCabeca: 'imagens/Volt detém o trem desgovernado.png'   
+            },
+           {
+                id: 'hq-5',
+                edicao: 'EDIÇÃO #05',
+                titulo: 'Esquadrão Nova Aurora',
+                subtitulo: 'Desafio dos Heróis, salvam a cidade',
+                corDestaque: '#FFD60A',
+                imagemCapa: 'imagens/Esquadrão Nova Aurora Cidade Salva.jpg',
+                imagemQuebraCabeca: 'imagens/Esquadrão Nova Aurora Cidade Salva.jpg'
+            }
+        ];
+
+        let estadoJogo = {
+            hqSelecionada: null,
+            tamanhoGrade: 3, // 3 (Fácil), 4 (Médio), 5 (Difícil)
+            imagemDataURL: '',
+            pecas: [], // { id, row, col, placedSlotIndex }
+            pecaSelecionadaId: null,
+            movimentos: 0,
+            segundos: 0,
+            timerInterval: null,
+            dicaAtiva: false,
+            somAtivo: true,
+            jogoConcluido: false
+        };
+
+        
+        let synth = null;
+        function tocarSom(tipo) {
+            if (!estadoJogo.somAtivo) return;
+            try {
+                if (!synth) {
+                    synth = new Tone.PolySynth(Tone.Synth).toDestination();
+                    synth.volume.value = -8;
+                }
+                if (Tone.context.state !== 'running') {
+                    Tone.start();
+                }
+
+                if (tipo === 'clic') {
+                    synth.triggerAttackRelease("C5", "32n");
+                } else if (tipo === 'encaixe') {
+                    synth.triggerAttackRelease(["E5", "G5", "C6"], "16n");
+                } else if (tipo === 'erro') {
+                    synth.triggerAttackRelease(["G3", "F#3"], "16n");
+                } else if (tipo === 'vitoria') {
+                    const now = Tone.now();
+                    synth.triggerAttackRelease("C5", "8n", now);
+                    synth.triggerAttackRelease("E5", "8n", now + 0.12);
+                    synth.triggerAttackRelease("G5", "8n", now + 0.24);
+                    synth.triggerAttackRelease("C6", "4n", now + 0.36);
+                }
+            } catch (e) {}
+        }
+
+        function alternarSom() {
+            estadoJogo.somAtivo = !estadoJogo.somAtivo;
+            const btn = document.getElementById('btn-som');
+            btn.innerHTML = estadoJogo.somAtivo 
+                ? '<span>🔊</span> <span class="hidden sm:inline">SOM: ON</span>' 
+                : '<span>🔇</span> <span class="hidden sm:inline">SOM: OFF</span>';
+        }
+
+        
+        function mostrarOnomatopeia(texto, x, y, cor = '#FFD60A') {
+            const el = document.createElement('div');
+            el.className = 'onomatopoeia-burst';
+            el.textContent = texto;
+            el.style.color = cor;
+            el.style.left = Math.min(window.innerWidth - 140, Math.max(20, x - 40)) + 'px';
+            el.style.top = Math.min(window.innerHeight - 80, Math.max(20, y - 30)) + 'px';
+            document.body.appendChild(el);
+            setTimeout(() => el.remove(), 750);
+        }
+
+        
+        function criarCapaAviso(titulo, corFundo, caminhoEsperado) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 600;
+            canvas.height = 600;
+            const ctx = canvas.getContext('2d');
+
+            ctx.fillStyle = corFundo;
+            ctx.fillRect(0, 0, 600, 600);
+
+            // Retícula
+            ctx.fillStyle = 'rgba(0,0,0,0.12)';
+            for (let y = 0; y < 600; y += 12) {
+                for (let x = (y % 24 === 0 ? 0 : 6); x < 600; x += 12) {
+                    ctx.beginPath();
+                    ctx.arc(x, y, 2, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+           
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(50, 140, 500, 320);
+            ctx.lineWidth = 8;
+            ctx.strokeStyle = '#000000';
+            ctx.strokeRect(50, 140, 500, 320);
+
+            ctx.fillStyle = '#FF2A5F';
+            ctx.font = '900 46px "Bangers", Impact, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('SUA FOTO AQUI!', 300, 220);
+
+            ctx.fillStyle = '#111111';
+            ctx.font = 'bold 24px "Comic Neue", sans-serif';
+            ctx.fillText('Salve sua imagem como:', 300, 285);
+
+            ctx.fillStyle = '#0077B6';
+            ctx.font = 'bold 26px monospace';
+            ctx.fillText(caminhoEsperado, 300, 330);
+
+            ctx.fillStyle = '#444444';
+            ctx.font = 'bold 20px "Comic Neue", sans-serif';
+            ctx.fillText('Ou use o card roxo "ESCOLHER FOTO DO PC"', 300, 405);
+
+            ctx.lineWidth = 14;
+            ctx.strokeRect(0, 0, 600, 600);
+
+            return canvas.toDataURL('image/png');
+        }
+
+        
+        function inicializarCatalogo() {
+            const grid = document.getElementById('grid-hqs');
+            grid.innerHTML = '';
+
+            
+            CATALOGO_HQS.forEach(hq => {
+                const card = document.createElement('div');
+                card.className = 'comic-panel comic-card flex flex-col overflow-hidden cursor-pointer bg-white';
+
+                const imgWrapper = document.createElement('div');
+                imgWrapper.className = 'relative border-b-4 border-black aspect-square overflow-hidden bg-gray-900';
+
+                const img = document.createElement('img');
+                img.src = hq.imagemCapa;
+                img.alt = hq.titulo;
+                img.className = 'w-full h-full object-cover transition-transform duration-300 hover:scale-105';
+
+                
+                img.onerror = () => {
+                    const fallback = criarCapaAviso(hq.titulo, hq.corDestaque, hq.imagemCapa);
+                    img.src = fallback;
+                    hq._fallbackUrl = fallback;
+                };
+
+                const badge = document.createElement('span');
+                badge.style.backgroundColor = hq.corDestaque;
+                badge.className = 'absolute top-3 left-3 border-2 border-black px-2.5 py-0.5 font-bangers text-base text-black shadow-[2px_2px_0_#000]';
+                badge.textContent = hq.edicao;
+
+                imgWrapper.appendChild(img);
+                imgWrapper.appendChild(badge);
+
+                const body = document.createElement('div');
+                body.className = 'p-4 flex flex-col flex-grow justify-between';
+                body.innerHTML = `
+                    <div>
+                        <h3 class="font-bangers text-2xl text-black tracking-wide leading-tight">${hq.titulo}</h3>
+                        <p class="font-bold text-sm text-gray-700 mt-1">${hq.subtitulo}</p>
+                    </div>
+                    <button class="comic-btn mt-4 w-full py-2 text-lg text-black" style="background-color: ${hq.corDestaque}">
+                        ▶ MONTAR AGORA!
+                    </button>
+                `;
+
+                card.appendChild(imgWrapper);
+                card.appendChild(body);
+                card.onclick = () => iniciarJogo(hq);
+                grid.appendChild(card);
+            });
+
+        
+            const cardUpload = document.createElement('div');
+            cardUpload.className = 'comic-panel comic-card flex flex-col overflow-hidden cursor-pointer bg-[#FFF9E6]';
+            cardUpload.onclick = () => document.getElementById('input-upload-foto').click();
+            cardUpload.innerHTML = `
+                <div class="relative border-b-4 border-black aspect-square overflow-hidden bg-[#9B5DE5] flex flex-col items-center justify-center p-4 text-center">
+                    <div class="bg-white border-4 border-black rounded-full w-20 h-20 flex items-center justify-center shadow-[4px_4px_0_#000] mb-3">
+                        <span class="text-4xl">📸</span>
+                    </div>
+                    <p class="font-bangers text-3xl text-white comic-text-stroke-sm tracking-wide">
+                        USAR FOTO DO DISPOSITIVO
+                    </p>
+                    <span class="absolute top-3 left-3 bg-[#FFD60A] border-2 border-black px-2.5 py-0.5 font-bangers text-base text-black shadow-[2px_2px_0_#000]">
+                        EDIÇÃO LIVRE
+                    </span>
+                </div>
+                <div class="p-4 flex flex-col flex-grow justify-between">
+                    <div>
+                        <h3 class="font-bangers text-2xl text-black tracking-wide leading-tight">Sua Foto Personalizada</h3>
+                        <p class="font-bold text-sm text-gray-700 mt-1">Escolha uma imagem do seu PC ou celular agora mesmo!</p>
+                    </div>
+                    <button class="comic-btn mt-4 w-full py-2 text-lg text-white bg-[#9B5DE5]">
+                        📂 ESCOLHER IMAGEM
+                    </button>
+                </div>
+            `;
+            grid.appendChild(cardUpload);
+        }
+
+        function processarUploadFoto(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const hqCustom = {
+                    id: 'custom-upload',
+                    edicao: 'EDIÇÃO LIVRE',
+                    titulo: file.name.replace(/\.[^/.]+$/, "") || 'Minha Foto HQ',
+                    corDestaque: '#9B5DE5',
+                    imagemCapa: e.target.result,
+                    imagemQuebraCabeca: e.target.result
+                };
+                iniciarJogo(hqCustom);
+            };
+            reader.readAsDataURL(file);
+            event.target.value = '';
+        }
+
+        function selecionarDificuldade(n) {
+            tocarSom('clic');
+            estadoJogo.tamanhoGrade = n;
+            document.querySelectorAll('.diff-btn').forEach(btn => {
+                btn.classList.remove('bg-[#FFD60A]');
+                btn.classList.add('bg-white');
+            });
+            const ativo = document.getElementById(`diff-${n}`);
+            ativo.classList.remove('bg-white');
+            ativo.classList.add('bg-[#FFD60A]');
+        }
+
+        
+        function iniciarJogo(hq) {
+            tocarSom('clic');
+            estadoJogo.hqSelecionada = hq;
+            estadoJogo.movimentos = 0;
+            estadoJogo.segundos = 0;
+            estadoJogo.pecaSelecionadaId = null;
+            estadoJogo.dicaAtiva = false;
+            estadoJogo.jogoConcluido = false;
+
+        
+            const imgTeste = new Image();
+            imgTeste.onload = () => {
+                estadoJogo.imagemDataURL = hq.imagemQuebraCabeca;
+                abrirTelaTabuleiro(hq);
+            };
+            imgTeste.onerror = () => {
+                estadoJogo.imagemDataURL = hq._fallbackUrl || criarCapaAviso(hq.titulo, hq.corDestaque, hq.imagemQuebraCabeca);
+                abrirTelaTabuleiro(hq);
+            };
+            imgTeste.src = hq.imagemQuebraCabeca;
+        }
+
+        function abrirTelaTabuleiro(hq) {
+            document.getElementById('tela-selecao').classList.add('hidden');
+            document.getElementById('tela-jogo').classList.remove('hidden');
+            document.getElementById('btn-voltar-topo').classList.remove('hidden');
+            document.getElementById('modal-vitoria').classList.add('hidden');
+            document.getElementById('modal-vitoria').classList.remove('flex');
+
+            document.getElementById('badge-edicao').textContent = hq.edicao;
+            document.getElementById('badge-edicao').style.backgroundColor = hq.corDestaque;
+            document.getElementById('titulo-hq-atual').textContent = hq.titulo;
+            document.getElementById('imagem-guia').src = estadoJogo.imagemDataURL;
+            document.getElementById('imagem-guia').classList.add('opacity-0');
+            document.getElementById('imagem-guia').classList.remove('opacity-30');
+            document.getElementById('btn-dica').classList.remove('bg-[#FFD60A]');
+
+            const nomesDiff = { 3: 'FÁCIL (3x3)', 4: 'MÉDIO (4x4)', 5: 'DIFÍCIL (5x5)' };
+            document.getElementById('info-dificuldade-badge').textContent = `MODO ${nomesDiff[estadoJogo.tamanhoGrade]}`;
+
+            atualizarPlacar();
+            iniciarCronometro();
+            construirTabuleiroEPecas();
+        }
+
+        function construirTabuleiroEPecas() {
+            const N = estadoJogo.tamanhoGrade;
+            const totalPecas = N * N;
+            const grade = document.getElementById('grade-tabuleiro');
+            const bandeja = document.getElementById('bandeja-pecas');
+
+            grade.innerHTML = '';
+            bandeja.innerHTML = '';
+
+            grade.style.gridTemplateColumns = `repeat(${N}, 1fr)`;
+            grade.style.gridTemplateRows = `repeat(${N}, 1fr)`;
+
+            bandeja.className = N === 5 
+                ? 'grid grid-cols-4 sm:grid-cols-5 lg:grid-cols-4 gap-2 min-h-[260px] max-h-[520px] overflow-y-auto p-1 place-items-center'
+                : 'grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-3 gap-2.5 min-h-[260px] max-h-[520px] overflow-y-auto p-1 place-items-center';
+
+            for (let i = 0; i < totalPecas; i++) {
+                const slot = document.createElement('div');
+                slot.className = 'puzzle-slot w-full h-full flex items-center justify-center';
+                slot.dataset.slotIndex = i;
+                slot.addEventListener('click', (e) => aoClicarNoSlot(i, e));
+                grade.appendChild(slot);
+            }
+
+            estadoJogo.pecas = [];
+            for (let r = 0; r < N; r++) {
+                for (let c = 0; c < N; c++) {
+                    const id = r * N + c;
+                    estadoJogo.pecas.push({
+                        id,
+                        row: r,
+                        col: c,
+                        placedSlotIndex: null
+                    });
+                }
+            }
+
+            const embaralhadas = [...estadoJogo.pecas].sort(() => Math.random() - 0.5);
+
+            embaralhadas.forEach(peca => {
+                const elPeca = criarElementoPeca(peca, N, false);
+                bandeja.appendChild(elPeca);
+            });
+        }
+
+        function criarElementoPeca(peca, N, noTabuleiro) {
+            const div = document.createElement('div');
+            div.className = noTabuleiro 
+                ? 'puzzle-piece w-full h-full' 
+                : 'puzzle-piece w-20 h-20 sm:w-24 sm:h-24 border-3 border-black rounded-md shadow-[3px_3px_0_#000]';
+            div.dataset.pecaId = peca.id;
+
+            div.style.backgroundImage = `url('${estadoJogo.imagemDataURL}')`;
+            div.style.backgroundSize = `${N * 100}% ${N * 100}%`;
+            const posX = N > 1 ? (peca.col / (N - 1)) * 100 : 0;
+            const posY = N > 1 ? (peca.row / (N - 1)) * 100 : 0;
+            div.style.backgroundPosition = `${posX}% ${posY}%`;
+
+            if (peca.placedSlotIndex === peca.id) {
+                div.classList.add('locked');
+            } else {
+                configurarInteracaoPeca(div, peca);
+            }
+
+            return div;
+        }
+
+    
+        let dragInfo = {
+            ativo: false,
+            pecaId: null,
+            startX: 0,
+            startY: 0,
+            moveu: false
+        };
+
+        function configurarInteracaoPeca(el, peca) {
+            const ghost = document.getElementById('drag-ghost');
+
+            const onPointerDown = (e) => {
+                if (peca.placedSlotIndex === peca.id || estadoJogo.jogoConcluido) return;
+                e.preventDefault();
+
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+                dragInfo = {
+                    ativo: true,
+                    pecaId: peca.id,
+                    startX: clientX,
+                    startY: clientY,
+                    moveu: false
+                };
+
+                const rect = el.getBoundingClientRect();
+                ghost.style.width = rect.width + 'px';
+                ghost.style.height = rect.height + 'px';
+                ghost.style.backgroundImage = el.style.backgroundImage;
+                ghost.style.backgroundSize = el.style.backgroundSize;
+                ghost.style.backgroundPosition = el.style.backgroundPosition;
+                ghost.style.left = (clientX - rect.width / 2) + 'px';
+                ghost.style.top = (clientY - rect.height / 2) + 'px';
+            };
+
+            const onPointerMove = (e) => {
+                if (!dragInfo.ativo || dragInfo.pecaId !== peca.id) return;
+
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+                if (Math.hypot(clientX - dragInfo.startX, clientY - dragInfo.startY) > 6) {
+                    dragInfo.moveu = true;
+                    ghost.style.display = 'block';
+                    el.style.opacity = '0.35';
+                }
+
+                if (dragInfo.moveu) {
+                    const w = parseFloat(ghost.style.width);
+                    const h = parseFloat(ghost.style.height);
+                    ghost.style.left = (clientX - w / 2) + 'px';
+                    ghost.style.top = (clientY - h / 2) + 'px';
+
+                    destacarSlotSobPonto(clientX, clientY);
+                }
+            };
+
+            const onPointerUp = (e) => {
+                if (!dragInfo.ativo || dragInfo.pecaId !== peca.id) return;
+
+                const clientX = e.changedTouches ? e.changedTouches[0].clientX : e.clientX;
+                const clientY = e.changedTouches ? e.changedTouches[0].clientY : e.clientY;
+
+                ghost.style.display = 'none';
+                el.style.opacity = '1';
+                limparDestaqueSlots();
+
+                if (dragInfo.moveu) {
+                    const slotAlvo = obterSlotSobPonto(clientX, clientY);
+                    if (slotAlvo !== null) {
+                        tentarColocarPecaNoSlot(peca.id, slotAlvo, clientX, clientY);
+                    }
+                } else {
+                    selecionarPecaPorClique(peca.id);
+                }
+
+                dragInfo.ativo = false;
+                dragInfo.pecaId = null;
+            };
+
+            el.addEventListener('mousedown', onPointerDown);
+            window.addEventListener('mousemove', onPointerMove);
+            window.addEventListener('mouseup', onPointerUp);
+
+            el.addEventListener('touchstart', onPointerDown, { passive: false });
+            window.addEventListener('touchmove', onPointerMove, { passive: false });
+            window.addEventListener('touchend', onPointerUp);
+        }
+
+        function obterSlotSobPonto(x, y) {
+            const slots = document.querySelectorAll('.puzzle-slot');
+            for (const slot of slots) {
+                const r = slot.getBoundingClientRect();
+                if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) {
+                    return parseInt(slot.dataset.slotIndex, 10);
+                }
+            }
+            return null;
+        }
+
+        function destacarSlotSobPonto(x, y) {
+            limparDestaqueSlots();
+            const idx = obterSlotSobPonto(x, y);
+            if (idx !== null) {
+                const slot = document.querySelector(`.puzzle-slot[data-slot-index="${idx}"]`);
+                if (slot && !slot.hasChildNodes()) {
+                    slot.classList.add('drag-over');
+                }
+            }
+        }
+
+        function limparDestaqueSlots() {
+            document.querySelectorAll('.puzzle-slot.drag-over').forEach(s => s.classList.remove('drag-over'));
+        }
+
+        function selecionarPecaPorClique(pecaId) {
+            tocarSom('clic');
+            document.querySelectorAll('.puzzle-piece.selected').forEach(el => el.classList.remove('selected'));
+
+            if (estadoJogo.pecaSelecionadaId === pecaId) {
+                estadoJogo.pecaSelecionadaId = null;
+                return;
+            }
+
+            estadoJogo.pecaSelecionadaId = pecaId;
+            const el = document.querySelector(`.puzzle-piece[data-peca-id="${pecaId}"]`);
+            if (el) el.classList.add('selected');
+        }
+
+        function aoClicarNoSlot(slotIndex, e) {
+            if (estadoJogo.pecaSelecionadaId === null) return;
+            tentarColocarPecaNoSlot(estadoJogo.pecaSelecionadaId, slotIndex, e.clientX, e.clientY);
+        }
+
+        function tentarColocarPecaNoSlot(pecaId, slotIndex, x, y) {
+            const slotEl = document.querySelector(`.puzzle-slot[data-slot-index="${slotIndex}"]`);
+            if (!slotEl || slotEl.hasChildNodes()) return;
+
+            estadoJogo.movimentos++;
+            const peca = estadoJogo.pecas.find(p => p.id === pecaId);
+            const N = estadoJogo.tamanhoGrade;
+
+            estadoJogo.pecaSelecionadaId = null;
+            document.querySelectorAll('.puzzle-piece.selected').forEach(el => el.classList.remove('selected'));
+
+            if (peca.id === slotIndex) {
+                peca.placedSlotIndex = slotIndex;
+
+                const pecaAntiga = document.querySelector(`.puzzle-piece[data-peca-id="${pecaId}"]`);
+                if (pecaAntiga) pecaAntiga.remove();
+
+                const novaPecaNoTabuleiro = criarElementoPeca(peca, N, true);
+                slotEl.appendChild(novaPecaNoTabuleiro);
+                slotEl.style.border = 'none';
+
+                tocarSom('encaixe');
+                const palavras = ['CLIC!', 'POW!', 'BINGO!', 'ZAP!', 'ISSO!'];
+                const palavra = palavras[Math.floor(Math.random() * palavras.length)];
+                mostrarOnomatopeia(palavra, x, y, '#00F5D4');
+
+                atualizarPlacar();
+                verificarVitoria();
+            } else {
+                tocarSom('erro');
+                mostrarOnomatopeia('OPS!', x, y, '#FF2A5F');
+                slotEl.classList.add('bg-red-500/30');
+                setTimeout(() => slotEl.classList.remove('bg-red-500/30'), 300);
+                atualizarPlacar();
+            }
+        }
+
+       
+        function atualizarPlacar() {
+            const total = estadoJogo.tamanhoGrade * estadoJogo.tamanhoGrade;
+            const encaixadas = estadoJogo.pecas.filter(p => p.placedSlotIndex === p.id).length;
+
+            document.getElementById('contador-movimentos').textContent = estadoJogo.movimentos;
+            document.getElementById('contador-progresso').textContent = `${encaixadas}/${total}`;
+        }
+
+        function formatarTempo(seg) {
+            const m = String(Math.floor(seg / 60)).padStart(2, '0');
+            const s = String(seg % 60).padStart(2, '0');
+            return `${m}:${s}`;
+        }
+
+        function iniciarCronometro() {
+            clearInterval(estadoJogo.timerInterval);
+            document.getElementById('cronometro').textContent = '00:00';
+            estadoJogo.timerInterval = setInterval(() => {
+                estadoJogo.segundos++;
+                document.getElementById('cronometro').textContent = formatarTempo(estadoJogo.segundos);
+            }, 1000);
+        }
+
+        function alternarDica() {
+            tocarSom('clic');
+            estadoJogo.dicaAtiva = !estadoJogo.dicaAtiva;
+            const guia = document.getElementById('imagem-guia');
+            const btn = document.getElementById('btn-dica');
+
+            if (estadoJogo.dicaAtiva) {
+                guia.classList.remove('opacity-0');
+                guia.classList.add('opacity-30');
+                btn.classList.add('bg-[#FFD60A]');
+            } else {
+                guia.classList.remove('opacity-30');
+                guia.classList.add('opacity-0');
+                btn.classList.remove('bg-[#FFD60A]');
+            }
+        }
+
+        function reiniciarQuebraCabeca() {
+            if (estadoJogo.hqSelecionada) {
+                iniciarJogo(estadoJogo.hqSelecionada);
+            }
+        }
+
+        function jogarNovamente() {
+            reiniciarQuebraCabeca();
+        }
+
+        function voltarParaSelecao() {
+            tocarSom('clic');
+            clearInterval(estadoJogo.timerInterval);
+            document.getElementById('tela-jogo').classList.add('hidden');
+            document.getElementById('tela-selecao').classList.remove('hidden');
+            document.getElementById('btn-voltar-topo').classList.add('hidden');
+            document.getElementById('modal-vitoria').classList.add('hidden');
+            document.getElementById('modal-vitoria').classList.remove('flex');
+        }
+
+        function verificarVitoria() {
+            const total = estadoJogo.tamanhoGrade * estadoJogo.tamanhoGrade;
+            const encaixadas = estadoJogo.pecas.filter(p => p.placedSlotIndex === p.id).length;
+
+            if (encaixadas === total) {
+                estadoJogo.jogoConcluido = true;
+                clearInterval(estadoJogo.timerInterval);
+                tocarSom('vitoria');
+
+                setTimeout(() => {
+                    document.getElementById('vitoria-titulo').textContent = estadoJogo.hqSelecionada.titulo;
+                    document.getElementById('vitoria-imagem').src = estadoJogo.imagemDataURL;
+                    document.getElementById('vitoria-tempo').textContent = formatarTempo(estadoJogo.segundos);
+                    document.getElementById('vitoria-movimentos').textContent = estadoJogo.movimentos;
+
+                    const modal = document.getElementById('modal-vitoria');
+                    modal.classList.remove('hidden');
+                    modal.classList.add('flex');
+                }, 400);
+            }
+        }
+
+        window.onload = () => {
+            inicializarCatalogo();
+        };
+    </script>
+</body>
+</html>
